@@ -169,7 +169,6 @@ def data_get():
         cur = conn.cursor()
 
     SQL = buildSelect(table, fields, filters)
-
     if debug == 'TRUE':
         return jsonify(result='OK', debug='TRUE', info=SQL)
         
