@@ -8,9 +8,33 @@ import sqlite3
 #import pymysql
    
 
-
 myApp = Flask(__name__)
 
+# ----------------------------------------------------------------------------------
+# - Create your own set of database connections here....these are just examples
+# - Ensure that the matching python libraries have been imported above
+# ----------------------------------------------------------------------------------
+def createConn(connection):
+    #sample connection to SQLite database
+    if connection == 'SQLITE':
+        try:
+            conn = sqlite3.connect('C:\\liveTableREST\\testdata\\DemoData.sqlite')
+        except:
+            return None     
+    
+	#sample connection to MYSQL database
+    #if connection == 'MYSQL':
+    #    try:
+    #        conn = pymysql.connect(db='MySampleDB', user='root', passwd='password1', host='localhost')
+    #    except:
+    #        return None
+    
+    return conn
+
+
+# ---------------------------------------------------------------------------------
+# Function to resolve cross site security issues
+#----------------------------------------------------------------------------------
 def add_cors_headers(response):
     response.headers['Access-Control-Allow-Origin'] = '*'
     if request.method == 'OPTIONS':
@@ -23,45 +47,10 @@ def add_cors_headers(response):
 myApp.after_request(add_cors_headers)
 
 
-# ----------------------------------------------------------------------------------
-# - Create your own set of database connections here....these are just examples
-# - Ensure that the matching python libraries have been imported above
-# ----------------------------------------------------------------------------------
-def createConn(connection):
-    if connection == 'SQLITE':
-        try:
-            conn = sqlite3.connect('C:\\liveTableREST\\testdata\\DemoData.sqlite')
-        except:
-            return None     
-    
-    #if connection == 'MYSQL':
-    #    try:
-    #        conn = pymysql.connect(db='MySampleDB', user='root', passwd='password1', host='localhost')
-    #    except:
-    #        return None
-    
-    return conn
-
-
 # ---------------------------------------------------------------------------------
-# Route to fetch data set based on SQL filters
+# Function to build SQL Select Statement
 #----------------------------------------------------------------------------------
-@myApp.route('/test', methods=['GET', 'POST'])
-def test_get():
-    connection = 'SQLITE'
-    table = 'Customers'
-    fields = '*'
-    #filters = [{"field" : "Country", "values": ["Argentina", "Australia", "Germany"]}, {"field" : "City", "values": ["Berlin", "Lille", "Sydney", "Buenos Aires"]}]
-    filters = []
-    debug = 'FALSE'
-    
-    # connect to database based on the connection requested
-    conn = createConn(connection)
-    if conn is None:
-        return jsonify(result="ERR", errmsg='could not connect to database')
-    else:
-        cur = conn.cursor()
-
+def buildSelect(table, fields, filters):
     # create SQL to query the data source baed on the parameters sent
     SQL = "SELECT %s FROM %s" % (fields, table)
     if len(filters) > 0:
@@ -78,7 +67,59 @@ def test_get():
             where += ") "
             SQL += where
             where = " AND "
-        
+    print(SQL)
+    return SQL
+	
+# ---------------------------------------------------------------------------------
+# Function to build SQL Update Statement
+#----------------------------------------------------------------------------------
+def buildSave(table, values, filters):
+    # create SQL to query the data source baed on the parameters sent
+    SQL = "UPDATE %s SET " % (table)
+    i = 0
+    fldlst = ''
+    for field, value in values.items():
+        fldlst += '%s = "%s"' % (field, value)
+        if i+1 != len(values):
+            fldlst += ", "
+        i += 1
+    SQL += fldlst
+    SQL += " WHERE "
+    where = ''
+    for filter in filters:
+        where += '"%s" IN (' % (filter['field'])
+        i = 0
+        for val in filter['values']:
+            where += '"%s"' % (val)
+            if i+1 != len(filter['values']):
+                where += ", "
+            i += 1
+        where += ") "
+        SQL += where
+        where = " AND "
+    print(SQL)
+    return SQL
+
+	
+# ---------------------------------------------------------------------------------
+# Route to fetch data set based on SQL filters
+#----------------------------------------------------------------------------------
+@myApp.route('/test', methods=['GET', 'POST'])
+def test_get():
+    connection = 'SQLITE'
+    table = 'Customers'
+    fields = '*'
+    filters = []
+    debug = 'FALSE'
+
+    # connect to database based on the connection requested
+    conn = createConn(connection)
+    if conn is None:
+        return jsonify(result="ERR", errmsg='could not connect to database')
+    else:
+        cur = conn.cursor()
+
+    SQL = buildSelect(table, fields, filters)
     if debug == 'TRUE':
         return jsonify(result='OK', debug='TRUE', info=SQL)
         
@@ -100,9 +141,6 @@ def test_get():
     conn.close()
     return jsonify(rows)
 
-
-    
-    
     
 # ---------------------------------------------------------------------------------
 # Route to fetch data set based on SQL filters
@@ -130,23 +168,8 @@ def data_get():
     else:
         cur = conn.cursor()
 
-    # create SQL to query the data source baed on the parameters sent
-    SQL = "SELECT %s FROM %s" % (fields, table)
-    if len(filters) > 0:
-        SQL += " WHERE "
-        where = ''
-        for filter in filters:
-            where += '"%s" IN (' % (filter['field'])
-            i = 0
-            for val in filter['values']:
-                where += '"%s"' % (val)
-                if i+1 != len(filter['values']):
-                    where += ", "
-                i += 1
-            where += ") "
-            SQL += where
-            where = " AND "
-        
+    SQL = buildSelect(table, fields, filters)
+
     if debug == 'TRUE':
         return jsonify(result='OK', debug='TRUE', info=SQL)
         
@@ -167,6 +190,47 @@ def data_get():
     rows.update(result)
     conn.close()
     return jsonify(rows)
+
+
+# ---------------------------------------------------------------------------------
+# Route to save data submitted
+#----------------------------------------------------------------------------------
+@myApp.route('/', methods=['PUT'])
+def data_put():
+    # get json sent to api and extract the relevant data
+    content = request.get_json(silent=True)
+    if content == None:
+        return jsonify(result="ERR", errmsg='no data received')
+    else:
+        connection = content['connection']
+        table = content['table']
+        values = content['values']
+        filters = content['filters']
+        try:
+            debug = content['debug']
+        except:
+            debug = 'FALSE'
+
+    # connect to database based on the connection requested
+    conn = createConn(connection)
+    if conn is None:
+        return jsonify(result="ERR", errmsg='could not connect to database')
+    else:
+        cur = conn.cursor()
+
+    SQL = buildSave(table, values, filters)
+    if debug == 'TRUE':
+        return jsonify(result='OK', debug='TRUE', info=SQL)
+        
+    # query the database 
+    try:
+        cur.execute(SQL)
+        conn.commit()
+        return jsonify(result='OK')
+    except:
+        conn.rollback()
+        return jsonify(result='ERR', info='An error occurred while querying the database.')
+   
 
 
 
