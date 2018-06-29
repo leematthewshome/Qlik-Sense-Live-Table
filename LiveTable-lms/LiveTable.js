@@ -1,18 +1,135 @@
 define(["jquery"], function($) {
+
+	//variable to hold filter criteria (used for record updates)
+	var filterList = [];
+	
     var qscPaintCounter = 0;
-		
     if (!qscPaintCounter) {
         $("<style>").html("/* Live Table Embedded Styles */ \
+		.myEditDiv {position: fixed; top:0;right:0;bottom:0;left:0; background:rgba(0,0,0,0.8); z-index:9999; opacity:0; -webkit-transition:opacity 400ms ease-in; -moz-transition:opacity 400ms ease-in; transition:opacity 400ms ease-in; pointer-events:none;} \
+		.myEditDiv > div{font-size:14pt;	position:relative;	margin:5% auto;	padding: 5px 20px 10px 20px; border-radius:10px; background: #fff; background: -moz-linear-gradient(#fff, #999); background: -webkit-linear-gradient(#fff, #999); 	background: -o-linear-gradient(#fff, #999); } \
 		tr {height:1.2em} \
+		.fldLbl {padding-top:10px; padding-bottom:10px; text-align:left; font-weight:bold;} \
+		.editable {readonly: false; width:100%;} \
 		.thead {padding-top:10px; padding-bottom:10px; text-align:center; font-weight:bold;} \
 		.header {border-bottom:1px solid silver; text-align:left; white-space:nowrap} \
-		.record {border-bottom:1px solid silver; text-align:right; padding-right:5px; padding-top:1px; padding-bottom:1px;} \
+		.record {border-bottom:1px solid silver; text-align:left; padding-right:5px; padding-top:1px; padding-bottom:1px;} \
 		.thead_b {border:1px solid silver;padding-top:10px; padding-bottom:10px; text-align:center; ;} \
 		.header_b {border:1px solid silver;text-align:left; white-space:nowrap} \
-		.record_b {border:1px solid silver;text-align:right; padding-right:5px; padding-top:1px; padding-bottom:1px;} \
+		.record_b {border:1px solid silver;text-align:left; padding-right:5px; padding-top:1px; padding-bottom:1px;} \
         ").appendTo("head");
-    }
+
+		
+		//Function to display vanilla editable form for selected record
+		//---------------------------------------------------------------------------
+		$(document).on("click", ".edit", function(){
+			key = $(this).attr("key")
+			filterList = [{"field" : qKeyField, "values" : [key]}]
+			myJSON["filters"] = filterList
+			if(qDebug){
+				console.log('JSON Sent: ' + JSON.stringify(myJSON))
+			}
+			//Send JSON to the REST API using fetch and get result
+			let fetchData = { 
+				method: 'POST', 
+				body: JSON.stringify(myJSON),
+				headers: {
+				  'Accept': 'application/json',
+				  'Content-Type': 'application/json'
+				}
+			}
+			fetch(qRestAPI, fetchData)
+			.then((resp) => resp.json()) // Transform the data into json
+			.then(function(data) {
+				if(qDebug){
+					console.log('JSON Received: ' + JSON.stringify(data))
+				}
+				renderForm(data)
+			 })
+			 .catch(function(error) {
+				console.log("There was an error fetching data from the LiveTable REST API: " + error)
+			 });   
+
+			var editdiv = document.getElementById('openModal');
+			editdiv.style.opacity = "1";
+			editdiv.style.pointerEvents = 'auto';
+		});
+	
+	
+		//Function to render the vanilla data entry form
+		//------------------------------------------------------------------------
+		var renderForm = function (jsonData) {
+			cols = jsonData["cols"];
+			rows = jsonData["rows"];
+			i = 0;
+			keyNo = 0;
+			thishtml = '<table id="editTable" width="90%">';
+			//create column header row
+			cols.forEach( function ( colname ) {
+				thishtml += '<tr>';
+				thishtml += '<td class="fldLbl">' + colname + '</td>';
+				thishtml += '<td><input class="editable" id="' + colname + '" type="text" value="' + rows[0][i] + '" /></td>';
+				thishtml += '</tr>';
+				i += 1;
+			})
+			thishtml += '<tr><td>&nbsp</td><td><button type="button" class="saveData" onClick="testSave()">Save Data</button></td></tr>';
+			thishtml += '</table>';
+			document.getElementById("dataEntry").innerHTML = thishtml;
+		};
+	
+	
+		//Function to save edited record
+		//---------------------------------------------------------------------------
+		$(document).on("click", ".saveData1", function(){
+			//get values from table
+			values = {};
+			$('.editable').each(function(index, item) {
+				if($(item).attr('id') != qKeyField){
+					values[$(item).attr('id')] = $(item).val();
+				}
+			});
+			if(qDebug){
+				console.log('JSON Sent: ' + JSON.stringify(myJSON))
+			}
+			//add new values to JSON (filters should still match single record)
+			myJSON["values"] = values;
+			//Send JSON to the REST API using fetch and get result
+			let fetchData = { 
+				method: 'PUT', 
+				body: JSON.stringify(myJSON),
+				headers: {
+				  'Accept': 'application/json',
+				  'Content-Type': 'application/json'
+				}
+			}
+			fetch(qRestAPI, fetchData)
+			.then((resp) => resp.json()) // Transform the data into json
+			.then(function(data) {
+				if(qDebug){
+					console.log('JSON Received: ' + JSON.stringify(data))
+				}
+				var editdiv = document.getElementById('openModal');
+				editdiv.style.opacity = '0';
+				editdiv.style.pointerEvents = 'none';
+			 })
+			 .catch(function(error) {
+				console.log("There was an error fetching data from the LiveTable REST API: " + error)
+			 });    
+			
+		});
+	}
+
+		//Function to render the vanilla data entry form
+		//------------------------------------------------------------------------
+		var testSave = function () {
+			alert("hey there");
+		};
+	
+
     return {
+		//---------------------------------------------------------------------------
+		//Properties Panel
+		//---------------------------------------------------------------------------
         initialProperties: {
             version: 1.0,
             qHyperCubeDef: {
@@ -100,7 +217,7 @@ define(["jquery"], function($) {
 							items: {
 								qDebug: {
 									type: "boolean",
-									label: "Debug REST interface",
+									label: "Display JSON in console",
 									ref: "qDebug",
 									defaultValue: false
 								}
@@ -119,14 +236,6 @@ define(["jquery"], function($) {
 		//Paint function to render the extension HTML
 		//---------------------------------------------------------------------------
         paint: function($element, layout) {
-
-		
-			//Function to display edit form
-			//---------------------------------------------------------------------------
-			var doEdit = function(id) {
-				alert('Display edit form for ' + id)
-			};
-
 			
 			//Function to get values for a given field (used to filter the data fetched)
 			//---------------------------------------------------------------------------
@@ -179,34 +288,35 @@ define(["jquery"], function($) {
 					})
 					if(qEditable){
 						var qscCellHtml = document.createElement('td');
-						qscCellHtml.className = "record"; 
-						qscCellHtml.innerHTML = "<button onClick='doEdit(\"" + row[keyNo] + "\")'> edit </button>";
+						qscCellHtml.className = 'record'; 
+						qscCellHtml.innerHTML = '<button type="button" class="edit" key="' + row[keyNo] + '">&nbsp edit &nbsp</button>';
 						qscRowHtml.appendChild(qscCellHtml); 					
 					}
 					tableBody.appendChild(qscRowHtml); 
 				})
-
 			};
 
-			//declare our table element
-            var currentTableQvid = layout.qInfo.qId;
-            $element.hide();
-            $('table').hide();
-            $element.html('');
-            $element.html('<table id="qsc-table-' + currentTableQvid + '" class="qsc-pivot-table responsive" ><tbody id="qsc-table-body-' + currentTableQvid + '"></tbody></table>');
-			var tableBody = document.getElementById("qsc-table-body-" + currentTableQvid + "");
-			
 			//get extension configuration settings 
-			qRestAPI = layout.qRestAPI
-			qDataConn = layout.qDataConn
-			qTable = layout.qTableName
-			qFields = layout.qFieldNames
+			qDebug = layout.qDebug;
+			qRestAPI = layout.qRestAPI;
+			qDataConn = layout.qDataConn;
+			qTable = layout.qTableName;
+			qFields = layout.qFieldNames;
 			if (qFields.length==0){
 				qFields = '*';
 			}
-			qEditable = layout.qEditable
-			qKeyField = layout.qKeyField
-			
+			qEditable = layout.qEditable;
+			qKeyField = layout.qKeyField;
+
+			//declare our table element
+            var currentTableQvid = layout.qInfo.qId;
+			var thishtml = '<div id="openModal" class="myEditDiv"><div id="dataEntry" style="width:500pt;"></div></div>'
+			thishtml += '<div id="table-div" ><table id="qsc-table-' + currentTableQvid + '" class="qsc-pivot-table responsive" ><tbody id="qsc-table-body-' + currentTableQvid + '"></tbody></table></div>';
+            $element.hide();
+            $('table').hide();
+            $element.html(thishtml);
+			var tableBody = document.getElementById("qsc-table-body-" + currentTableQvid + "");
+						
 			//build JSON to submit to API
 			myJSON = {
 				"version" : "1.0", 
@@ -228,12 +338,9 @@ define(["jquery"], function($) {
 			} );
 			
 
-
 			//provide debug alerts if required by the config
-			if(layout.qDebug){
-				//myJSON['debug'] = "TRUE"; 
-				console.log(JSON.stringify(myJSON))
-				alert('JSON Sent: ' + JSON.stringify(myJSON))
+			if(qDebug){
+				console.log('JSON Sent: ' + JSON.stringify(myJSON))
 				//create test of SQL Script 
 				testSQL = "SELECT " + qFields + " FROM " + qTable;
 				where = " WHERE ";
@@ -251,9 +358,9 @@ define(["jquery"], function($) {
 						where = " AND ";
 					});
 				}
-				alert('Expected SQL: ' + testSQL)
+				//alert('Expected SQL: ' + testSQL)
 			}
-			
+
 			//Send JSON to the REST API using fetch and get result
 			let fetchData = { 
 				method: 'POST', 
@@ -266,8 +373,8 @@ define(["jquery"], function($) {
 			fetch(qRestAPI, fetchData)
 			.then((resp) => resp.json()) // Transform the data into json
 			.then(function(data) {
-				if(layout.qDebug){
-					alert('JSON Received: ' + JSON.stringify(data))
+				if(qDebug){
+					console.log('JSON Received: ' + JSON.stringify(data))
 				}
 				renderTable(data)
 			 })
