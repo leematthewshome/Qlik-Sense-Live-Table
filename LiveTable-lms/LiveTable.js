@@ -72,7 +72,7 @@ define(["jquery"], function($) {
 				thishtml += '</tr>';
 				i += 1;
 			})
-			thishtml += '<tr><td>&nbsp</td><td><button type="button" class="saveData" onClick="testSave()">Save Data</button></td></tr>';
+			thishtml += '<tr><td>&nbsp</td><td><button type="button" class="saveData" >Save Data</button></td></tr>';
 			thishtml += '</table>';
 			document.getElementById("dataEntry").innerHTML = thishtml;
 		};
@@ -80,7 +80,7 @@ define(["jquery"], function($) {
 	
 		//Function to save edited record
 		//---------------------------------------------------------------------------
-		$(document).on("click", ".saveData1", function(){
+		$(document).on("click", ".saveData", function(){
 			//get values from table
 			values = {};
 			$('.editable').each(function(index, item) {
@@ -119,11 +119,6 @@ define(["jquery"], function($) {
 		});
 	}
 
-		//Function to render the vanilla data entry form
-		//------------------------------------------------------------------------
-		var testSave = function () {
-			alert("hey there");
-		};
 	
 
     return {
@@ -338,30 +333,11 @@ define(["jquery"], function($) {
 			} );
 			
 
-			//provide debug alerts if required by the config
+			//Send JSON to the REST API using fetch and get result
 			if(qDebug){
 				console.log('JSON Sent: ' + JSON.stringify(myJSON))
-				//create test of SQL Script 
-				testSQL = "SELECT " + qFields + " FROM " + qTable;
-				where = " WHERE ";
-				if(myJSON['filters'].length > 0){
-					myJSON['filters'].forEach( function ( filter ) {
-						where += filter['field'] += " IN ("
-						for (var i = 0; i < filter['values'].length; i++) {
-							where += "'" + filter['values'][i] + "'"
-							if(i != filter['values'].length-1){
-								where += ", "
-							}
-						}
-						where += ") "
-						testSQL = testSQL + where;
-						where = " AND ";
-					});
-				}
-				//alert('Expected SQL: ' + testSQL)
-			}
 
-			//Send JSON to the REST API using fetch and get result
+			}
 			let fetchData = { 
 				method: 'POST', 
 				body: JSON.stringify(myJSON),
