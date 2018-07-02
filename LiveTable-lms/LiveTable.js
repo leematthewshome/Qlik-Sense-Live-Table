@@ -113,7 +113,7 @@ define(["jquery"], function($) {
             items: {
                 dimensions: {
                     uses: "dimensions",
-                    min: 1,
+                    min: 0,
                     max: 4
                 },
                 measures: {
@@ -183,6 +183,12 @@ define(["jquery"], function($) {
 									type: "boolean",
 									label: "Display JSON in console",
 									ref: "qDebug",
+									defaultValue: false
+								},
+								qShowSQL: {
+									type: "boolean",
+									label: "Display SQL in REST console",
+									ref: "qShowSQL",
 									defaultValue: false
 								}
 							}
@@ -288,6 +294,10 @@ define(["jquery"], function($) {
 				"table" : qTable, 
 				"fields" : qFields,
 				"filters" : []
+			}
+			//add parameter to show SQL in REST API command window
+			if (layout.qShowSQL){
+				myJSON["debug"] = "TRUE";
 			}
 			var dimCnt = 0;
 			hypercube = layout.qHyperCube
