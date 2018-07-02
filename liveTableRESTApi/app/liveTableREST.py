@@ -2,7 +2,7 @@
 from flask import Flask, jsonify, request, json
 
 # ----------------------------------------------------------------------------------
-# - Import the database libraries that are relevant for your database connections 
+# - Import the database libraries that are required for your database connections 
 # ----------------------------------------------------------------------------------
 import sqlite3
 #import pymysql
@@ -12,7 +12,7 @@ myApp = Flask(__name__)
 
 # ----------------------------------------------------------------------------------
 # - Create your own set of database connections here....these are just examples
-# - Ensure that the matching python libraries have been imported above
+# - Ensure that the matching python libraries have been installed & imported above
 # ----------------------------------------------------------------------------------
 def createConn(connection):
     #sample connection to SQLite database
@@ -50,8 +50,8 @@ myApp.after_request(add_cors_headers)
 # ---------------------------------------------------------------------------------
 # Function to build SQL Select Statement
 #----------------------------------------------------------------------------------
-def buildSelect(table, fields, filters):
-    # create SQL to query the data source baed on the parameters sent
+def buildSelect(table, fields, filters, debug):
+    # create SQL to query the data source based on the parameters sent
     SQL = "SELECT %s FROM %s" % (fields, table)
     if len(filters) > 0:
         SQL += " WHERE "
@@ -67,13 +67,14 @@ def buildSelect(table, fields, filters):
             where += ") "
             SQL += where
             where = " AND "
-    print(SQL)
+    if debug=="TRUE":
+        print(SQL)
     return SQL
 	
 # ---------------------------------------------------------------------------------
 # Function to build SQL Update Statement
 #----------------------------------------------------------------------------------
-def buildSave(table, values, filters):
+def buildSave(table, values, filters, debug):
     # create SQL to query the data source baed on the parameters sent
     SQL = "UPDATE %s SET " % (table)
     i = 0
@@ -97,7 +98,8 @@ def buildSave(table, values, filters):
         where += ") "
         SQL += where
         where = " AND "
-    print(SQL)
+    if debug=="TRUE":
+        print(SQL)
     return SQL
 
 	
@@ -110,7 +112,7 @@ def test_get():
     table = 'Customers'
     fields = '*'
     filters = []
-    debug = 'FALSE'
+    debug = 'TRUE'
 
     # connect to database based on the connection requested
     conn = createConn(connection)
@@ -168,9 +170,7 @@ def data_get():
     else:
         cur = conn.cursor()
 
-    SQL = buildSelect(table, fields, filters)
-    if debug == 'TRUE':
-        return jsonify(result='OK', debug='TRUE', info=SQL)
+    SQL = buildSelect(table, fields, filters, debug)
         
     # query the database 
     try:
@@ -217,9 +217,7 @@ def data_put():
     else:
         cur = conn.cursor()
 
-    SQL = buildSave(table, values, filters)
-    if debug == 'TRUE':
-        return jsonify(result='OK', debug='TRUE', info=SQL)
+    SQL = buildSave(table, values, filters, debug)
         
     # query the database 
     try:
@@ -238,7 +236,7 @@ def data_put():
 # Run the REST API 
 # ==================================================================================
 if __name__ == "__main__":
-    myApp.run(port=5000, debug=True)
+    myApp.run(host= '0.0.0.0', port=5000, debug=True)
     
     
     
