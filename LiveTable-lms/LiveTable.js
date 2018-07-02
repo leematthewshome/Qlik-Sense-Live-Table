@@ -1,8 +1,5 @@
 define(["jquery"], function($) {
 
-	//variable to hold filter criteria (used for record updates)
-	var filterList = [];
-	
     var qscPaintCounter = 0;
     if (!qscPaintCounter) {
         $("<style>").html("/* Live Table Embedded Styles */ \
@@ -22,10 +19,18 @@ define(["jquery"], function($) {
 		
 		//Function to display vanilla editable form for selected record
 		//---------------------------------------------------------------------------
+		$(document).on("click", ".cancel", function(){
+			var editdiv = document.getElementById('openModal');
+			editdiv.style.opacity = "0";
+			editdiv.style.pointerEvents = 'none';
+		});
+
+		
+		//Function to display vanilla editable form for selected record
+		//---------------------------------------------------------------------------
 		$(document).on("click", ".edit", function(){
 			key = $(this).attr("key")
-			filterList = [{"field" : qKeyField, "values" : [key]}]
-			myJSON["filters"] = filterList
+			myJSON["filters"] = [{"field" : qKeyField, "values" : [key]}]
 			if(qDebug){
 				console.log('JSON Sent: ' + JSON.stringify(myJSON))
 			}
@@ -63,63 +68,27 @@ define(["jquery"], function($) {
 			rows = jsonData["rows"];
 			i = 0;
 			keyNo = 0;
-			thishtml = '<table id="editTable" width="90%">';
-			//create column header row
+			thishtml = '<table id="editTable" width="90%" >';
+			thishtml += '<tr><td>&nbsp</td><td>&nbsp</td><td style="text-align:right"><button type="button" class="cancel" >&nbsp X &nbsp</button></td></tr>';
+
+			//create rows
 			cols.forEach( function ( colname ) {
-				thishtml += '<tr>';
-				thishtml += '<td class="fldLbl">' + colname + '</td>';
-				thishtml += '<td><input class="editable" id="' + colname + '" type="text" value="' + rows[0][i] + '" /></td>';
-				thishtml += '</tr>';
+				if (colname!=qKeyField){
+					thishtml += '<tr>';
+					thishtml += '<td class="fldLbl">' + colname + '</td>';
+					thishtml += '<td><input class="editable" id="' + colname + '" type="text" value="' + rows[0][i] + '" /></td>';
+					thishtml += '<td>&nbsp</td>';
+					thishtml += '</tr>';
+				}
 				i += 1;
 			})
 			thishtml += '<tr><td>&nbsp</td><td><button type="button" class="saveData" >Save Data</button></td></tr>';
 			thishtml += '</table>';
 			document.getElementById("dataEntry").innerHTML = thishtml;
 		};
-	
-	
-		//Function to save edited record
-		//---------------------------------------------------------------------------
-		$(document).on("click", ".saveData", function(){
-			//get values from table
-			values = {};
-			$('.editable').each(function(index, item) {
-				if($(item).attr('id') != qKeyField){
-					values[$(item).attr('id')] = $(item).val();
-				}
-			});
-			if(qDebug){
-				console.log('JSON Sent: ' + JSON.stringify(myJSON))
-			}
-			//add new values to JSON (filters should still match single record)
-			myJSON["values"] = values;
-			//Send JSON to the REST API using fetch and get result
-			let fetchData = { 
-				method: 'PUT', 
-				body: JSON.stringify(myJSON),
-				headers: {
-				  'Accept': 'application/json',
-				  'Content-Type': 'application/json'
-				}
-			}
-			fetch(qRestAPI, fetchData)
-			.then((resp) => resp.json()) // Transform the data into json
-			.then(function(data) {
-				if(qDebug){
-					console.log('JSON Received: ' + JSON.stringify(data))
-				}
-				var editdiv = document.getElementById('openModal');
-				editdiv.style.opacity = '0';
-				editdiv.style.pointerEvents = 'none';
-			 })
-			 .catch(function(error) {
-				console.log("There was an error fetching data from the LiveTable REST API: " + error)
-			 });    
 			
-		});
+		
 	}
-
-	
 
     return {
 		//---------------------------------------------------------------------------
@@ -231,7 +200,7 @@ define(["jquery"], function($) {
 		//Paint function to render the extension HTML
 		//---------------------------------------------------------------------------
         paint: function($element, layout) {
-			
+
 			//Function to get values for a given field (used to filter the data fetched)
 			//---------------------------------------------------------------------------
 			var getValues = function (rows, col) {
@@ -357,6 +326,47 @@ define(["jquery"], function($) {
 			 .catch(function(error) {
 				console.log("There was an error fetching data from the LiveTable REST API: " + error)
 			 });   
+
+			const that = this;
+
+			//Function to save edited record
+			//---------------------------------------------------------------------------
+			$(document).on("click", ".saveData", function(){
+				//get values from table
+				values = {};
+				$('.editable').each(function(index, item) {
+					if($(item).attr('id') != qKeyField){
+						values[$(item).attr('id')] = $(item).val();
+					}
+				});
+				if(qDebug){
+					console.log('JSON Sent: ' + JSON.stringify(myJSON))
+				}
+				//add new values to JSON (filters should still match single record)
+				myJSON["values"] = values;
+				//Send JSON to the REST API using fetch and get result
+				let fetchData = { 
+					method: 'PUT', 
+					body: JSON.stringify(myJSON),
+					headers: {
+					  'Accept': 'application/json',
+					  'Content-Type': 'application/json'
+					}
+				}
+				fetch(qRestAPI, fetchData)
+				.then((resp) => resp.json()) // Transform the data into json
+				.then(function(data) {
+					if(qDebug){
+						console.log('JSON Received: ' + JSON.stringify(data))
+					}
+					that.paint($element, layout)
+				 })
+				 .catch(function(error) {
+					console.log("There was an error fetching data from the LiveTable REST API: " + error)
+				 });    
+				
+			});
+			
 
 			 
 			$element[0].style.overflowX = "scroll";
