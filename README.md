@@ -10,3 +10,5 @@ As extensions are executed in the context of the user’s browser, a server-side
 
 2.	A server-side Python based REST API to query the database(s)
 
+The Word document provided outlines the process for installing the solution. The following YouTube video outlines how to use the extension and some of its features: https://www.youtube.com/watch?v=CRy_7khE5yA&t=166s
+
