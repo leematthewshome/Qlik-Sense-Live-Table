@@ -6,7 +6,8 @@ from flask import Flask, jsonify, request, json
 # ----------------------------------------------------------------------------------
 import sqlite3
 #import pymysql
-   
+#import psycopg2
+
 
 myApp = Flask(__name__)
 
@@ -29,6 +30,13 @@ def createConn(connection):
     #    except:
     #        return None
     
+	#sample connection to Postgres database
+    #if connection == 'DEMODATA':
+    #    try:
+    #        conn = psycopg2.connect(host="localhost",database="DemoData", user="postgres", password="", port=4432)
+    #    except:
+    #        return None
+
     return conn
 
 
@@ -52,7 +60,7 @@ myApp.after_request(add_cors_headers)
 #----------------------------------------------------------------------------------
 def buildSelect(table, fields, filters, debug):
     # create SQL to query the data source based on the parameters sent
-    SQL = "SELECT %s FROM %s" % (fields, table)
+    SQL = 'SELECT %s FROM "%s"' % (fields, table)
     if len(filters) > 0:
         SQL += " WHERE "
         where = ''
@@ -60,7 +68,7 @@ def buildSelect(table, fields, filters, debug):
             where += '"%s" IN (' % (filter['field'])
             i = 0
             for val in filter['values']:
-                where += '"%s"' % (val)
+                where += "'%s'" % (val)
                 if i+1 != len(filter['values']):
                     where += ", "
                 i += 1
