@@ -29,10 +29,11 @@ define(["jquery"], function($) {
 		//Function to display vanilla editable form for selected record
 		//---------------------------------------------------------------------------
 		$(document).on("click", ".edit", function(){
-			key = $(this).attr("key")
-			myJSON["filters"] = [{"field" : qKeyField, "values" : [key]}]
+			key = $(this).attr("key");
+			myJSON["filters"] = [{"field" : qKeyField, "values" : [key]}];
+			myJSON["editFields"] = qEditFields;
 			if(qDebug){
-				console.log('JSON Sent: ' + JSON.stringify(myJSON))
+				console.log('JSON Sent: ' + JSON.stringify(myJSON));
 			}
 			//Send JSON to the REST API using fetch and get result
 			let fetchData = { 
@@ -154,6 +155,12 @@ define(["jquery"], function($) {
 									label: "List of field names (optional)",
 									ref: "qFieldNames",
 									defaultValue: ""
+								},
+								qMaxRows: {
+									type: "integer",
+									label: "Max rows to return",
+									ref: "qMaxRows",
+									defaultValue: "50"
 								}
 							}
 						},
@@ -171,6 +178,12 @@ define(["jquery"], function($) {
 									type: "string",
 									label: "Key field",
 									ref: "qKeyField",
+									defaultValue: ""
+								},
+								qEditFields: {
+									type: "string",
+									label: "List of editable fields (optional)",
+									ref: "qEditFields",
 									defaultValue: ""
 								}
 							}
@@ -275,8 +288,16 @@ define(["jquery"], function($) {
 			if (qFields.length==0){
 				qFields = '*';
 			}
+			qEditFields = layout.qEditFields;
+			if (qEditFields.length==0){
+				qEditFields = '*';
+			}
 			qEditable = layout.qEditable;
 			qKeyField = layout.qKeyField;
+			qMaxRows = layout.qMaxRows;
+			if (isNaN(qMaxRows)){
+				qMaxRows = 50
+			}
 
 			//declare our table element
             var currentTableQvid = layout.qInfo.qId;
@@ -293,6 +314,7 @@ define(["jquery"], function($) {
 				"connection" : qDataConn, 
 				"table" : qTable, 
 				"fields" : qFields,
+				"maxRows" : qMaxRows,
 				"filters" : []
 			}
 			//add parameter to show SQL in REST API command window
