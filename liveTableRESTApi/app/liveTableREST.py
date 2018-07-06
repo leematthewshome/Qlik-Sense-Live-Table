@@ -121,9 +121,7 @@ def test_get():
     else:
         cur = conn.cursor()
 
-    SQL = buildSelect(table, fields, filters)
-    if debug == 'TRUE':
-        return jsonify(result='OK', debug='TRUE', info=SQL)
+    SQL = buildSelect(table, fields, filters, debug)
         
     # query the database 
     try:
@@ -158,10 +156,18 @@ def data_get():
         table = content['table']
         fields = content['fields']
         filters = content['filters']
+        maxRows = int(content['maxRows'])
         try:
             debug = content['debug']
         except:
             debug = 'FALSE'
+		# if edit fields were passed then use them (as we are in edit mode)
+        try:
+            editFields = content['editFields']
+        except:
+            editFields = None
+        if editFields != None and len(editFields) > 0:
+            fields = editFields
 
     # connect to database based on the connection requested
     conn = createConn(connection)
@@ -179,9 +185,17 @@ def data_get():
         conn.rollback()
         return jsonify(result='ERR', info='An error occurred while querying the database.')
    
-    # if results were returned then 
+    # if results were returned then get fields and rows
     fields = [i[0] for i in cur.description]
-    list = cur.fetchall()
+    #list = cur.fetchall()
+    list = []
+    recs = cur.fetchall()
+    for rec in recs:
+        if maxRows > 0:
+            list.append(rec)
+            maxRows -= 1
+        else:
+            break
     rows = {'rows': list}
     result = {'result': 'OK'}
     cols = {'cols': fields}
