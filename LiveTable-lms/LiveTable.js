@@ -301,7 +301,7 @@ define(["jquery"], function($) {
 
 			//declare our table element
             var currentTableQvid = layout.qInfo.qId;
-			var thishtml = '<div id="openModal" class="myEditDiv"><div id="dataEntry" style="width:500pt;"></div></div>'
+			var thishtml = '<div id="openModal" class="myEditDiv"><div id="dataEntry" style="width:500pt;height:80%;overflow:auto;"></div></div>'
 			thishtml += '<div id="table-div" ><table id="qsc-table-' + currentTableQvid + '" class="qsc-pivot-table responsive" ><tbody id="qsc-table-body-' + currentTableQvid + '"></tbody></table></div>';
             $element.hide();
             $('table').hide();
