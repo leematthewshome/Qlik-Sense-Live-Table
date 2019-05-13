@@ -36,7 +36,7 @@ define(["jquery"], function($) {
 				console.log('JSON Sent: ' + JSON.stringify(myJSON));
 			}
 			//Send JSON to the REST API using fetch and get result
-			let fetchData = { 
+			var fetchData = { 
 				method: 'POST', 
 				body: JSON.stringify(myJSON),
 				headers: {
@@ -339,7 +339,7 @@ define(["jquery"], function($) {
 				console.log('JSON Sent: ' + JSON.stringify(myJSON))
 
 			}
-			let fetchData = { 
+			var fetchData = { 
 				method: 'POST', 
 				body: JSON.stringify(myJSON),
 				headers: {
@@ -377,7 +377,7 @@ define(["jquery"], function($) {
 				//add new values to JSON (filters should still match single record)
 				myJSON["values"] = values;
 				//Send JSON to the REST API using fetch and get result
-				let fetchData = { 
+				var fetchData = { 
 					method: 'PUT', 
 					body: JSON.stringify(myJSON),
 					headers: {
